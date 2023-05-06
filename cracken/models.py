@@ -5,13 +5,16 @@ from django.urls import reverse
 class Store(models.Model):
     """Model representing a virtual game store."""
     name = models.CharField(max_length=200, help_text='Enter a store name (e.g. Steam)')
-    url = models.URLField(max_length=200, help_text='Enter the store URL (e.g. https://store.steampowered.com/)')
-    description = models.TextField(max_length=1000, help_text='Enter a brief description of the store.')
+    url = models.URLField(max_length=200, help_text='Enter the store URL (e.g. https://store.steampowered.com/)'
+                          , blank=True, null=True)
+    description = models.TextField(max_length=1000, help_text='Enter a brief description of the store.', null=True,
+                                   blank=True)
     games = models.ManyToManyField('Game', help_text='Select a game for this store')
 
     def __str__(self):
         """String for representing the Model object."""
         return self.name
+
     def get_absolute_url(self):
         """Returns the URL to access a detail record for this store."""
         return reverse('store-detail', args=[str(self.id)])
@@ -22,7 +25,7 @@ class WarezGroup(models.Model):
     name = models.CharField(max_length=200, help_text='Enter a group name (e.g. SKIDROW)')
     description = models.TextField(max_length=1000, help_text='Enter a brief description of the group.',
                                    null=True, blank=True)
-    year_founded = models.DateField(null=True, blank=True, help_text='Enter the year the group was founded.',)
+    year_founded = models.DateField(null=True, blank=True, help_text='Enter the year the group was founded.', )
     games_cracked = models.ManyToManyField('Game', help_text='Select a game for this group')
 
     def __str__(self):
