@@ -39,7 +39,7 @@ class Game(models.Model):
     name = models.CharField(max_length=200, help_text='Enter a game name (e.g. Cyberpunk 2077)')
     cracking_group = models.ForeignKey('WarezGroup', on_delete=models.SET_NULL, null=True)
     crack_date = models.DateField(null=True, blank=True)
-    store = models.ManyToManyField(Store, help_text='Select a store for this game')
+    available_on_stores = models.ManyToManyField(Store, help_text='Select stores for this game')
     score = models.DecimalField(max_digits=3, decimal_places=0, null=True, blank=True)
     num_reviews = models.IntegerField(null=True, blank=True)
 
@@ -49,5 +49,9 @@ class Game(models.Model):
     def __str__(self):
         """String for representing the Model object."""
         return self.name
+
+    def get_absolute_url(self):
+        """Returns the URL to access a detail record for this game."""
+        return reverse('game-detail', args=[str(self.id)])
 
 # Create your models here.
