@@ -38,8 +38,8 @@ def extract_table_contents(table_text):
 def extract_table_from_thread(submission):
     """
     Extracts the table from the submission's selftext.
-    @param submission: the submission to extract the table from
-    @type submission: praw.models.Submission
+    @param submission: the reddit post to extract the table from
+    @type submission: praw.reddit.Submission
     @return: a pandas dataframe containing the table data
     @rtype: pandas.DataFrame
     """
