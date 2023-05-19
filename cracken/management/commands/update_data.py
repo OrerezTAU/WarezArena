@@ -1,18 +1,7 @@
 import praw
 import pandas as pd
+import re
 
-reddit = praw.Reddit(
-    client_id="dk3990BeRf2SHUD8omrOJQ",
-    client_secret="Qf0oesji7FZOtSDxIYw8hErqogBH5Q",
-    user_agent="crackwatch scraper bot 1.0 by /u/Th3-3rr0r",
-)
-
-subreddit = reddit.subreddit("CrackWatch")  # subreddit to scrape
-
-search_results = subreddit.search('Daily Releases', time_filter='day',
-                                  sort='new')  # search for the daily releases thread
-
-thread = next(search_results)  # get the first result (today's thread)
 
 
 def extract_table_contents(table_text):
@@ -30,6 +19,15 @@ def extract_table_contents(table_text):
     for row in rows[2:]:  # skip the column names row and the text directions row
         cells = [cell.strip() for cell in row.split('|') if cell.strip()]
         if len(cells) == len(column_names):
+            pattern_name = r'\[(.*?)\]'  # Regular expression pattern to match expressions inside square brackets
+            pattern_link = r'\((.*?)\)'  # Regular expression pattern to match expressions inside parentheses
+            game_name_str = re.search(pattern_name, cells[0]).group(1)  # find the game name inside square brackets
+            game_link_str = re.search(pattern_link, cells[0]).group(1)  # find the game link inside parentheses
+            store_names_tuple = re.findall(pattern_name, cells[2])  # find all the stores in the cell
+            store_links_tuple = re.findall(pattern_link, cells[2])  # find all the store links in the cell
+            # TODO - find a scalable way to access the store and game columns (not hardcoded)
+            cells[0] = game_name_str
+            cells[2] = store_names_tuple
             data_rows.append(cells)
 
     return column_names, data_rows
@@ -61,6 +59,22 @@ def extract_table_from_thread(submission):
     print("---")
 
 
-# Check if the submission has a table-like structure
-DataFrame = extract_table_from_thread(thread)
-print(DataFrame)
+reddit = praw.Reddit(
+    client_id="dk3990BeRf2SHUD8omrOJQ",
+    client_secret="Qf0oesji7FZOtSDxIYw8hErqogBH5Q",
+    user_agent="crackwatch scraper bot 1.0 by /u/Th3-3rr0r",
+)
+
+subreddit = reddit.subreddit("CrackWatch")  # subreddit to scrape
+
+search_results = subreddit.search('Daily Releases', time_filter='day',
+                                  sort='new')  # search for the daily releases thread
+
+thread = next(search_results)  # get the first result (today's thread)
+
+data_frame = extract_table_from_thread(thread)
+
+print(data_frame)
+
+data = data_frame.to_dict(orient='records')
+
