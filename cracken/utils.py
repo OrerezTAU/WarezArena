@@ -1,6 +1,8 @@
+from urllib.parse import urlparse
 import praw
 import pandas as pd
 import re
+from .models import Game, Store, WarezGroup
 
 
 def find_reddit_thread():
@@ -47,6 +49,7 @@ def extract_table_contents(table_text):
             cells[0] = game_name_str
             cells[2] = ', '.join(store_names_tuple)
             cells.append(game_link_str)
+            store_links_tuple = [urlparse(link).netloc for link in store_links_tuple]
             cells.append(', '.join(store_links_tuple))
             data_rows.append(cells)
 
@@ -85,27 +88,42 @@ def extract_table_from_thread():
     print("---")
 
 
-# def update_database(dataframe):
-#     """
-#     Updates the database with the data from the dataframe.
-#     @param dataframe: a pandas dataframe containing the table data
-#     @type dataframe: pandas.DataFrame
-#     """
-#     data_store = [
-#         Store(
-#             name=dataframe.iloc[row]['Store'],
-#             link=dataframe.iloc[row]['Store Link']
-#         )
-#         for row in dataframe.iterrows()
-#     ]
-#     Store.objects.bulk_create(data_store)
-#
-#     data_game = [
-#         Game(
-#             name=dataframe.iloc[row]['Game'],
-#             link=dataframe.iloc[row]['Game Link'],
-#             stores=Store.objects.filter(name__in=dataframe.iloc[row]['Store'].split(', '))
-#         )
-#         for row in dataframe.iterrows()
-#     ]
-#     Game.objects.bulk_create(data_game)
+def update_database(dataframe):
+    """
+    Updates the database with the data from the dataframe.
+    @param dataframe: a pandas dataframe containing the table data
+    @type dataframe: pandas.DataFrame
+    """
+    store_names = dataframe['Store'].str.split(', ').explode().unique()
+    store_links = dataframe['Store Link'].str.split(', ').explode().unique()
+    group_names = dataframe['Group'].explode().unique()
+    game_names = dataframe['Game'].explode().unique()
+    game_links = dataframe['Game Link'].explode().unique()
+
+    data_store = [
+        Store(
+            name=store_names[row],
+            url=store_links[row]
+        )
+        for row in range(len(store_names))
+    ]
+    Store.objects.bulk_create(data_store, update_conflicts=True, update_fields=['url', 'name'])
+
+    data_group = [
+        WarezGroup(
+            name=group_names[row]
+        )
+        for row in range(len(group_names))
+    ]
+    WarezGroup.objects.bulk_create(data_group, update_conflicts=True, update_fields=['name'])
+
+    data_game = [
+        Game(
+            cracking_group=WarezGroup.objects.get(name=dataframe['Group'].explode()[row]),
+            name=game_names[row],
+            nfo_link=game_links[row]
+        )
+        for row in range(len(game_names))
+    ]
+    Game.objects.bulk_create(data_game)
+

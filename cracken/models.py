@@ -45,6 +45,8 @@ class Game(models.Model):
     available_on_stores = models.ManyToManyField(Store, help_text='Select stores for this game')
     score = models.DecimalField(max_digits=3, decimal_places=0, null=True, blank=True)
     num_reviews = models.IntegerField(null=True, blank=True)
+    nfo_link = models.URLField(max_length=200, help_text='Enter the NFO link (e.g. https://predb.me/?post=8540923)'
+                               ,null=True, blank=True)
 
     class Meta:
         ordering = ['crack_date', 'num_reviews', 'score']

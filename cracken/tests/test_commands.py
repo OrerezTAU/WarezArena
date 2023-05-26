@@ -1,39 +1,35 @@
 from io import StringIO
 from django.core.management import call_command
-from django.test import TestCase
 
 from django.test import TestCase
 
-from catalog.models import Author
+from cracken.models import Store, Game, WarezGroup
+
+from cracken import utils
 
 
 class UpdateCommandTest(TestCase):
     @classmethod
     def setUpTestData(cls):
-        # Set up non-modified objects used by all test methods
-        Author.objects.create(first_name='Big', last_name='Bob')
+        # Create objects that aren't going to be modified or changed in any of the test methods.
+        call_command("update_data")
 
-    def test_first_name_label(self):
-        author = Author.objects.get(id=1)
-        field_label = author._meta.get_field('first_name').verbose_name
-        self.assertEqual(field_label, 'first name')
+    def setUp(self):
+        # called before every test function to set up any objects that may be modified by the test
+        # (every test function will get a "fresh" version of these objects).
+        pass
+    def test_num_of_games(self):
+        dataframe = utils.extract_table_from_thread()
+        num = dataframe.shape[0]
+        self.assertEqual(Game.objects.count(), num)
 
-    def test_date_of_death_label(self):
-        author = Author.objects.get(id=1)
-        field_label = author._meta.get_field('date_of_death').verbose_name
-        self.assertEqual(field_label, 'died')
+    def test_num_of_stores(self):
+        dataframe = utils.extract_table_from_thread()
+        group_names = dataframe['Group'].explode().unique()
+        self.assertEqual(WarezGroup.objects.count(), len(group_names))
 
-    def test_first_name_max_length(self):
-        author = Author.objects.get(id=1)
-        max_length = author._meta.get_field('first_name').max_length
-        self.assertEqual(max_length, 100)
+    def test_num_of_groups(self):
+        dataframe = utils.extract_table_from_thread()
+        store_names = dataframe['Store'].explode().unique()
+        self.assertEqual(Store.objects.count(), len(store_names))
 
-    def test_object_name_is_last_name_comma_first_name(self):
-        author = Author.objects.get(id=1)
-        expected_object_name = f'{author.last_name}, {author.first_name}'
-        self.assertEqual(str(author), expected_object_name)
-
-    def test_get_absolute_url(self):
-        author = Author.objects.get(id=1)
-        # This will also fail if the urlconf is not defined.
-        self.assertEqual(author.get_absolute_url(), '/catalog/author/1')
