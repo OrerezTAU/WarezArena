@@ -2,10 +2,16 @@ from urllib.parse import urlparse
 import praw
 import pandas as pd
 import re
+from django.db import IntegrityError
 from .models import Game, Store, WarezGroup
 
 
 def find_reddit_thread():
+    """
+    Finds the reddit thread containing the daily releases table.
+    @return: the reddit thread (submission) containing the daily releases table
+    @rtype: praw.models.Submission
+    """
     reddit = praw.Reddit(
         client_id="dk3990BeRf2SHUD8omrOJQ",
         client_secret="Qf0oesji7FZOtSDxIYw8hErqogBH5Q",
@@ -14,10 +20,19 @@ def find_reddit_thread():
 
     subreddit = reddit.subreddit("CrackWatch")  # subreddit to scrape
 
-    search_results = subreddit.search('Daily Releases', time_filter='week',
+    if not subreddit:
+        raise Exception("Subreddit not found")
+
+    search_results = subreddit.search('Daily Releases', time_filter='month',
                                       sort='new')  # search for the daily releases thread
+    if not search_results:
+        raise Exception("No threads found this month")
 
     thread = next(search_results)  # get the first result (today's thread)
+
+    if not thread:
+        raise Exception("No threads found today")
+
     return thread
 
 
@@ -94,11 +109,21 @@ def update_database(dataframe):
     @param dataframe: a pandas dataframe containing the table data
     @type dataframe: pandas.DataFrame
     """
+    # get unique store, game and group names and links
     store_names = dataframe['Store'].str.split(', ').explode().unique()
     store_links = dataframe['Store Link'].str.split(', ').explode().unique()
     group_names = dataframe['Group'].explode().unique()
     game_names = dataframe['Game'].explode().unique()
     game_links = dataframe['Game Link'].explode().unique()
+
+    curr_store_names = Store.objects.values_list('name', flat=True)
+    curr_group_names = WarezGroup.objects.values_list('name', flat=True)
+
+    # check if the store, group names already exist in the database
+    store_names = [name for name in store_names if name not in curr_store_names]
+    group_names = [name for name in group_names if name not in curr_group_names]
+
+
 
     data_store = [
         Store(
@@ -107,7 +132,7 @@ def update_database(dataframe):
         )
         for row in range(len(store_names))
     ]
-    Store.objects.bulk_create(data_store, update_conflicts=True, update_fields=['url', 'name'])
+    Store.objects.bulk_create(data_store)  # bulk create stores
 
     data_group = [
         WarezGroup(
@@ -115,7 +140,8 @@ def update_database(dataframe):
         )
         for row in range(len(group_names))
     ]
-    WarezGroup.objects.bulk_create(data_group, update_conflicts=True, update_fields=['name'])
+    WarezGroup.objects.bulk_create(data_group) # bulk create groups
+    # or update them if they already exist
 
     data_game = [
         Game(
@@ -125,5 +151,4 @@ def update_database(dataframe):
         )
         for row in range(len(game_names))
     ]
-    Game.objects.bulk_create(data_game)
-
+    Game.objects.bulk_create(data_game) # bulk create games
