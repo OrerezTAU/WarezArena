@@ -60,12 +60,12 @@ def warez_group(request):
 def store(request):
     """This view is for the Store model."""
     if request.method == 'GET':
-        group = WarezGroup.objects.all()
-        serializer = WarezGroupSerializer(group, many=True)
+        group = Store.objects.all()
+        serializer = StoreSerializer(group, many=True)
         return Response(serializer.data)
 
     elif request.method == 'POST':
-        serializer = WarezGroupSerializer(data=request.data)
+        serializer = StoreSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(status=status.HTTP_201_CREATED)
