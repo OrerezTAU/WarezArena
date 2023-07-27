@@ -48,3 +48,8 @@ You will get a link to the address of the site. Default for localhost is [http:/
 ## License
 
 [MIT](https://choosealicense.com/licenses/mit/)
+
+# Tutorials used:
+https://enzircle.hashnode.dev/responsive-table-with-django-and-htmx
+
+https://developer.mozilla.org/en-US/docs/Learn/Server-side/Django/Tutorial_local_library_website

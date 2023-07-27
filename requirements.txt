@@ -4,4 +4,4 @@ pandas==2.0.3
 praw==7.7.1
 mysqlclient==2.2.0
 mysql-connector-python==8.1.0
-
+django-filter~=23.2
