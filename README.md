@@ -9,6 +9,7 @@ Download the repository from here using the git clone method.
 Make sure you have pip3 installed on your machine and have a running MySQL client. 
 
 Replace the values: 
+
 DB_NAME, 
 
 USER_NAME,
