@@ -9,7 +9,10 @@ Download the repository from here using the git clone method.
 Make sure you have pip3 installed on your machine and have a running MySQL client. 
 
 Replace the values: 
-DB_NAME, USER_NAME,USER_PASSWORD with the right credentials for your database, in the following part in the settings.py file:
+DB_NAME, 
+USER_NAME,
+USER_PASSWORD
+with the right credentials for your database, in the following part in the settings.py file:
 
 ```python
 DATABASES = {
