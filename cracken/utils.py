@@ -1,9 +1,12 @@
+import datetime
 from urllib.parse import urlparse
 import praw
 import pandas as pd
 import re
-from django.db import IntegrityError
-from .models import Game, Store, WarezGroup
+from cracken.models import Game, Store, WarezGroup
+from prettytable import from_db_cursor
+import mysql.connector
+from mysql.connector import Error
 
 
 def find_reddit_thread():
@@ -11,6 +14,7 @@ def find_reddit_thread():
     Finds the reddit thread containing the daily releases table.
     @return: the reddit thread (submission) containing the daily releases table
     @rtype: praw.models.Submission
+    @raise Exception: if the subreddit is not found or if no threads are found this week
     """
     reddit = praw.Reddit(
         client_id="dk3990BeRf2SHUD8omrOJQ",
@@ -23,10 +27,10 @@ def find_reddit_thread():
     if not subreddit:
         raise Exception("Subreddit not found")
 
-    search_results = subreddit.search('Daily Releases', time_filter='month',
+    search_results = subreddit.search('Daily Releases', time_filter='week',
                                       sort='new')  # search for the daily releases thread
     if not search_results:
-        raise Exception("No threads found this month")
+        raise Exception("No threads found this week")
 
     thread = next(search_results)  # get the first result (today's thread)
 
@@ -71,14 +75,48 @@ def extract_table_contents(table_text):
     return column_names, data_rows
 
 
+def create_db_connection():
+    """
+    Creates a connection to the database.
+    @return: a connection to the database
+    @rtype: mysql.connector.connection.MySQLConnection
+    @raise Error: if the connection to the database fails
+    """
+    con_db = {
+        'host': 'localhost',
+        'database': 'crackedgamesDB',
+        'user': 'root',
+        'password': '82736455oe'
+    }
+    try:
+        db = mysql.connector.connect(**con_db)
+    except Error as error:
+        raise error
+    return db
+
+
 def extract_table_from_thread():
     """
-    Extracts the table from the submission's selftext.
-    @return: a pandas dataframe containing the table data
-    @rtype: pandas.DataFrame
+    Extracts the table and thread's creation date from the submission's selftext.
+    @return: a pandas dataframe containing the table data and a string containing the thread's creation date
+    @rtype: tuple(pandas.DataFrame, str)
     """
 
     submission = find_reddit_thread()  # find the daily releases thread
+
+    time_created = submission.created
+    formatted_time = datetime.datetime.fromtimestamp(time_created).strftime('%Y-%m-%d')
+    date_object = datetime.datetime.strptime(formatted_time, '%Y-%m-%d').date()
+
+    db = create_db_connection()
+
+    # Check if the thread has already been processed
+    cursor = db.cursor()
+    query = "SELECT * FROM cracken_game WHERE crack_date = %s"
+    cursor.execute(query, (date_object,))
+    row = cursor.fetchone()
+    if row and row[0] > 0:
+        return None, datetime.datetime.fromisocalendar(2001, 1, 1).strftime('%Y-%m-%d')
 
     # Set pandas options to display columns properly
     pd.set_option('display.max_rows', 500)
@@ -95,7 +133,7 @@ def extract_table_from_thread():
 
         if column_names and data_rows:
             df = pd.DataFrame(data_rows, columns=column_names)  # create a pandas dataframe from the table data
-            return df
+            return df, formatted_time
         else:
             print("No table found in the submission.")
     else:
@@ -103,27 +141,30 @@ def extract_table_from_thread():
     print("---")
 
 
-def update_database(dataframe):
-    """
-    Updates the database with the data from the dataframe.
-    @param dataframe: a pandas dataframe containing the table data
-    @type dataframe: pandas.DataFrame
-    """
-    # get unique store, game and group names and links
+def create_validate_vars(dataframe):
     store_names = dataframe['Store'].str.split(', ').explode().unique()
     store_links = dataframe['Store Link'].str.split(', ').explode().unique()
     group_names = dataframe['Group'].explode().unique()
     game_names = dataframe['Game'].explode().unique()
     game_links = dataframe['Game Link'].explode().unique()
-
     curr_store_names = Store.objects.values_list('name', flat=True)
     curr_group_names = WarezGroup.objects.values_list('name', flat=True)
-
     # check if the store, group names already exist in the database
     store_names = [name for name in store_names if name not in curr_store_names]
     group_names = [name for name in group_names if name not in curr_group_names]
+    return game_links, game_names, group_names, store_links, store_names
 
 
+def update_database(dataframe, date):
+    """
+    Updates the database with the data from the dataframe.
+    @param dataframe: a pandas dataframe containing the table data
+    @type dataframe: pandas.DataFrame
+    @param date: a string containing the thread's creation date
+    @type date: str
+    """
+    # get unique store, game and group names and links
+    game_links, game_names, group_names, store_links, store_names = create_validate_vars(dataframe)
 
     data_store = [
         Store(
@@ -140,15 +181,41 @@ def update_database(dataframe):
         )
         for row in range(len(group_names))
     ]
-    WarezGroup.objects.bulk_create(data_group) # bulk create groups
+    WarezGroup.objects.bulk_create(data_group)  # bulk create groups
     # or update them if they already exist
 
     data_game = [
         Game(
             cracking_group=WarezGroup.objects.get(name=dataframe['Group'].explode()[row]),
             name=game_names[row],
-            nfo_link=game_links[row]
+            nfo_link=game_links[row],
+            crack_date=date
         )
         for row in range(len(game_names))
     ]
-    Game.objects.bulk_create(data_game) # bulk create games
+    Game.objects.bulk_create(data_game)  # bulk create games
+
+
+def create_html_table():
+    """
+    Creates a prettyTable from the database and writes it to a file.
+    """
+    # Create a connection to the database
+    db = create_db_connection()
+    if db is None:
+        return
+    # Initiate cursor
+    cursor = db.cursor()
+    # Execute SQL query
+    cursor.execute("SELECT * FROM cracken_game")
+    # Convert "gameRecords" table to a prettyTable
+    my_table = from_db_cursor(cursor)
+    # Generate the HTML code of the prettyTable using "get_html_string"
+    html_code = my_table.get_html_string(attributes={"class": "table"}, format=True)
+    # Open prettyTable.html file
+    fo = open("cracken/templates/index.html", "w")
+    # Write "htmlCode" to index.html
+    fo.write(html_code)
+    # Close prettyTable.html
+    fo.close()
+    return
