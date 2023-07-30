@@ -145,14 +145,33 @@ def create_validate_vars(dataframe):
     store_names = dataframe['Store'].str.split(', ').explode().unique()
     store_links = dataframe['Store Link'].str.split(', ').explode().unique()
     group_names = dataframe['Group'].explode().unique()
-    game_names = dataframe['Game'].explode().unique()
-    game_links = dataframe['Game Link'].explode().unique()
+    game_names = dataframe['Game'].explode()
+    game_links = dataframe['Game Link'].explode()
+
+    game_reviews, game_scores = proccess_sc_r_col(dataframe)
     curr_store_names = Store.objects.values_list('name', flat=True)
     curr_group_names = WarezGroup.objects.values_list('name', flat=True)
+
     # check if the store, group names already exist in the database
     store_names = [name for name in store_names if name not in curr_store_names]
     group_names = [name for name in group_names if name not in curr_group_names]
-    return game_links, game_names, group_names, store_links, store_names
+    return game_links, game_names, group_names, store_links, store_names, game_scores, game_reviews
+
+
+def proccess_sc_r_col(dataframe):
+    game_scores_reviews = dataframe['Score (Reviews)'].explode()
+    game_scores = [score.split('% ')[0] for score in game_scores_reviews]
+    game_reviews = [review.split(' ')[1] for review in game_scores_reviews if len(review.split(' ')) > 1]
+    if len(game_scores) != len(game_reviews):
+        for i in range(len(game_scores)):
+            if game_scores[i] == '-':
+                game_scores[i] = '-1'
+                game_reviews.insert(i, '-1')
+            else:
+                game_reviews[i] = game_reviews[i][1:-1]
+                if game_reviews[i].find('k') != -1:
+                    game_reviews[i] = game_scores[i].replace('k', '000')
+    return game_reviews, game_scores
 
 
 def update_database(dataframe, date):
@@ -163,8 +182,9 @@ def update_database(dataframe, date):
     @param date: a string containing the thread's creation date
     @type date: str
     """
-    # get unique store, game and group names and links
-    game_links, game_names, group_names, store_links, store_names = create_validate_vars(dataframe)
+    # get unique store, game and group fields values
+    (game_links, game_names, group_names, store_links, store_names,
+     game_scores, game_reviews) = create_validate_vars(dataframe)
 
     data_store = [
         Store(
@@ -189,7 +209,9 @@ def update_database(dataframe, date):
             cracking_group=WarezGroup.objects.get(name=dataframe['Group'].explode()[row]),
             name=game_names[row],
             nfo_link=game_links[row],
-            crack_date=date
+            crack_date=date,
+            score=game_scores[row],
+            num_reviews=game_reviews[row]
         )
         for row in range(len(game_names))
     ]
@@ -207,9 +229,10 @@ def create_html_table():
     # Initiate cursor
     cursor = db.cursor()
     # Execute SQL query
-    cursor.execute("SELECT * FROM cracken_game")
+    cursor.execute("SELECT name,cracking_group_id,score,num_reviews,crack_date,nfo_link FROM cracken_game")
     # Convert "gameRecords" table to a prettyTable
     my_table = from_db_cursor(cursor)
+    my_table.field_names = ["Game Name", "Cracking Group", "Score(%)", "Reviews", "Date Cracked", "NFO Link"]
     # Generate the HTML code of the prettyTable using "get_html_string"
     html_code = my_table.get_html_string(attributes={"class": "table"}, format=True)
     # Open prettyTable.html file
