@@ -186,6 +186,7 @@ def extract_table_from_thread():
     submission = find_reddit_thread()  # find the daily releases thread
 
     time_created = submission.created
+    # TODO - submission created date is not necessarily the date of the thread
     formatted_time = datetime.datetime.fromtimestamp(time_created).strftime('%Y-%m-%d')
     date_object = datetime.datetime.strptime(formatted_time, '%Y-%m-%d').date()
 
