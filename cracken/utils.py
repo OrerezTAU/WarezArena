@@ -111,12 +111,9 @@ def extract_table_from_thread():
     db = create_db_connection()
 
     # Check if the thread has already been processed
-    cursor = db.cursor()
-    query = "SELECT * FROM cracken_game WHERE crack_date = %s LIMIT 1"
-    cursor.execute(query, (date_object,))
-    row = cursor.fetchone()
-    if row and row[0] > 0:
+    if Game.objects.filter(crack_date=date_object).exists():
         return None, datetime.datetime.fromisocalendar(2001, 1, 1).strftime('%Y-%m-%d')
+
 
     # Set pandas options to display columns properly
     pd.set_option('display.max_rows', 500)
@@ -217,6 +214,10 @@ def update_database(dataframe, date):
     ]
     Game.objects.bulk_create(data_game)  # bulk create games
 
+    handle_many_to_many(dataframe)
+
+
+def handle_many_to_many(dataframe):
     for index, row in dataframe.iterrows():
         # Access values of individual columns using column names
         store_list_str = row['Store'].split(', ')
