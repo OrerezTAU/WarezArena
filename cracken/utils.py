@@ -176,6 +176,76 @@ def extract_table_contents(table_text):
     return column_names, data_rows
 
 
+def extract_date(submission):
+    """
+    Extracts the date from the thread title.
+    @param submission: the reddit thread containing the daily releases table.
+    @type submission: praw.models.Submission
+    @return: the date of the thread in datetime format as a datetime object and as a string
+    @rtype: tuple of datetime.datetime and str
+    """
+    thread_title = submission.title
+    date_list = thread_title.split(' ')
+    date_list[2] = date_list[2][1:]  # remove the parentheses from the month
+    date_list[3] = date_list[3][:-1]  # remove the comma from the day
+    date_list[4] = date_list[4][:-1]  # remove the parentheses from the year
+    parameter = date_list[2]  # the month
+    match parameter:
+
+        case "January":
+            date_list[2] = '01'
+        case "February":
+            date_list[2] = '02'
+        case "March":
+            date_list[2] = '03'
+        case "April":
+            date_list[2] = '04'
+        case "May":
+            date_list[2] = '05'
+        case "June":
+            date_list[2] = '06'
+        case "July":
+            date_list[2] = '07'
+        case "August":
+            date_list[2] = '08'
+        case "September":
+            date_list[2] = '09'
+        case "October":
+            date_list[2] = '10'
+        case "November":
+            date_list[2] = '11'
+        case "December":
+            date_list[2] = '12'
+        case _:
+            raise Exception("Invalid month")
+    parameter = date_list[3]  # the day
+    match parameter:
+
+        case "1":
+            date_list[3] = '01'
+        case "2":
+            date_list[3] = '02'
+        case "3":
+            date_list[3] = '03'
+        case "4":
+            date_list[3] = '04'
+        case "5":
+            date_list[3] = '05'
+        case "6":
+            date_list[3] = '06'
+        case "7":
+            date_list[3] = '07'
+        case "8":
+            date_list[3] = '08'
+        case "9":
+            date_list[3] = '09'
+        case _:
+            pass
+    formatted_time = date_list[4] + '-' + date_list[2] + '-' + date_list[3]  # format the date as YYYY-MM-DD
+    date_object = datetime.datetime.strptime(formatted_time, '%Y-%m-%d').date()
+    return date_object, formatted_time
+
+
 def extract_table_from_thread():
     """
     Extracts the table and thread's creation date from the submission's selftext.
@@ -185,10 +255,7 @@ def extract_table_from_thread():
 
     submission = find_reddit_thread()  # find the daily releases thread
 
-    time_created = submission.created
-    # TODO - submission created date is not necessarily the date of the thread
-    formatted_time = datetime.datetime.fromtimestamp(time_created).strftime('%Y-%m-%d')
-    date_object = datetime.datetime.strptime(formatted_time, '%Y-%m-%d').date()
+    date_object, formatted_time = extract_date(submission)
 
     # Check if the thread has already been processed
     if Game.objects.filter(crack_date=date_object).exists():
