@@ -217,6 +217,22 @@ def update_database(dataframe, date):
     ]
     Game.objects.bulk_create(data_game)  # bulk create games
 
+    for index, row in dataframe.iterrows():
+        # Access values of individual columns using column names
+        store_list_str = row['Store'].split(', ')
+        store_list_df = [Store.objects.get(name=store) for store in store_list_str]
+        group_name_df = row['Group']
+        group = WarezGroup.objects.get(name=group_name_df)
+        game_name_df = row['Game']
+        game = Game.objects.get(name=game_name_df)
+
+        game.available_on_stores.add(*store_list_df)  # add stores to game
+
+        for store in store_list_df:
+            store.games.add(game)  # add game to stores
+
+        group.games_cracked.add(game)  # add game to group
+
 
 def create_html_table():
     """
