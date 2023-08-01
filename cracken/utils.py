@@ -9,6 +9,105 @@ import mysql.connector
 from mysql.connector import Error
 
 
+# -----------------  Auxiliary functions -------------------
+
+def create_db_connection():
+    """
+    Creates a connection to the database.
+    @return: a connection to the database
+    @rtype: mysql.connector.connection.MySQLConnection
+    @raise Error: if the connection to the database fails
+    """
+    con_db = {
+        'host': 'localhost',
+        'database': 'crackedgamesDB',
+        'user': 'root',
+        'password': '82736455oe'
+    }
+    try:
+        db = mysql.connector.connect(**con_db)
+    except Error as error:
+        raise error
+    return db
+
+
+def create_validate_vars(dataframe):
+    """
+    Creates lists of the data to be added to the database, and validates the data.
+    @param dataframe: the dataframe containing the data to be added to the database
+    @type dataframe: pandas.DataFrame
+    @return: a tuple containing the data to be added to the database
+    @rtype: tuple
+    """
+    
+    store_names = dataframe['Store'].str.split(', ').explode().unique()
+    store_links = dataframe['Store Link'].str.split(', ').explode().unique()
+    group_names = dataframe['Group'].explode().unique()
+    game_names = dataframe['Game'].explode()
+    game_links = dataframe['Game Link'].explode()
+
+    game_reviews, game_scores = process_score_reviews_cols(dataframe)
+    curr_store_names = Store.objects.values_list('name', flat=True)
+    curr_group_names = WarezGroup.objects.values_list('name', flat=True)
+
+    # check if the store, group names already exist in the database
+    store_names = [name for name in store_names if name not in curr_store_names]
+    group_names = [name for name in group_names if name not in curr_group_names]
+    return game_links, game_names, group_names, store_links, store_names, game_scores, game_reviews
+
+
+def process_score_reviews_cols(dataframe):
+    """
+    Processes the Score (Reviews) column of the dataframe.
+    In general, separates the scores and reviews into two lists.
+    @param dataframe: the dataframe containing the data to be added to the database
+    @type dataframe: pandas.DataFrame
+    @return: a tuple containing the scores and reviews
+    @rtype: tuple
+    """
+    game_scores_reviews = dataframe['Score (Reviews)'].explode()
+    game_scores = [score.split('% ')[0] for score in game_scores_reviews]
+    game_reviews = [review.split(' ')[1] for review in game_scores_reviews if len(review.split(' ')) > 1]
+    if len(game_scores) != len(game_reviews):
+        for i in range(len(game_scores)):
+            if game_scores[i] == '-':
+                game_scores[i] = '-1'
+                game_reviews.insert(i, '-1')
+            else:
+                game_reviews[i] = game_reviews[i][1:-1]
+                if game_reviews[i].find('k') != -1:
+                    game_reviews[i] = game_scores[i].replace('k', '000')
+    return game_reviews, game_scores
+
+
+def handle_many_to_x(dataframe):
+    """
+    Handles the many-to-many and many-to-one relationships between the models.
+    Adds the available stores to each game, the games cracked to each store, and the games cracked
+    by each WarezGroup to the group.
+    @param dataframe: the dataframe containing the data to be added to the database
+    @type dataframe: pandas.DataFrame
+    """
+    for index, row in dataframe.iterrows():
+        # Access values of individual columns using column names
+        store_list_str = row['Store'].split(', ')
+        store_list_df = [Store.objects.get(name=store) for store in store_list_str]
+        group_name_df = row['Group']
+        group = WarezGroup.objects.get(name=group_name_df)
+        game_name_df = row['Game']
+        game = Game.objects.get(name=game_name_df)
+
+        game.available_on_stores.add(*store_list_df)  # add stores to game
+
+        for store in store_list_df:
+            store.games.add(game)  # add game to stores
+
+        group.games_cracked.add(game)  # add game to group
+
+
+# -----------------  Data extraction functions -------------------
+
+
 def find_reddit_thread():
     """
     Finds the reddit thread containing the daily releases table.
@@ -75,26 +174,6 @@ def extract_table_contents(table_text):
     return column_names, data_rows
 
 
-def create_db_connection():
-    """
-    Creates a connection to the database.
-    @return: a connection to the database
-    @rtype: mysql.connector.connection.MySQLConnection
-    @raise Error: if the connection to the database fails
-    """
-    con_db = {
-        'host': 'localhost',
-        'database': 'crackedgamesDB',
-        'user': 'root',
-        'password': '82736455oe'
-    }
-    try:
-        db = mysql.connector.connect(**con_db)
-    except Error as error:
-        raise error
-    return db
-
-
 def extract_table_from_thread():
     """
     Extracts the table and thread's creation date from the submission's selftext.
@@ -113,7 +192,6 @@ def extract_table_from_thread():
     # Check if the thread has already been processed
     if Game.objects.filter(crack_date=date_object).exists():
         return None, datetime.datetime.fromisocalendar(2001, 1, 1).strftime('%Y-%m-%d')
-
 
     # Set pandas options to display columns properly
     pd.set_option('display.max_rows', 500)
@@ -138,37 +216,7 @@ def extract_table_from_thread():
     print("---")
 
 
-def create_validate_vars(dataframe):
-    store_names = dataframe['Store'].str.split(', ').explode().unique()
-    store_links = dataframe['Store Link'].str.split(', ').explode().unique()
-    group_names = dataframe['Group'].explode().unique()
-    game_names = dataframe['Game'].explode()
-    game_links = dataframe['Game Link'].explode()
-
-    game_reviews, game_scores = process_score_reviews_cols(dataframe)
-    curr_store_names = Store.objects.values_list('name', flat=True)
-    curr_group_names = WarezGroup.objects.values_list('name', flat=True)
-
-    # check if the store, group names already exist in the database
-    store_names = [name for name in store_names if name not in curr_store_names]
-    group_names = [name for name in group_names if name not in curr_group_names]
-    return game_links, game_names, group_names, store_links, store_names, game_scores, game_reviews
-
-
-def process_score_reviews_cols(dataframe):
-    game_scores_reviews = dataframe['Score (Reviews)'].explode()
-    game_scores = [score.split('% ')[0] for score in game_scores_reviews]
-    game_reviews = [review.split(' ')[1] for review in game_scores_reviews if len(review.split(' ')) > 1]
-    if len(game_scores) != len(game_reviews):
-        for i in range(len(game_scores)):
-            if game_scores[i] == '-':
-                game_scores[i] = '-1'
-                game_reviews.insert(i, '-1')
-            else:
-                game_reviews[i] = game_reviews[i][1:-1]
-                if game_reviews[i].find('k') != -1:
-                    game_reviews[i] = game_scores[i].replace('k', '000')
-    return game_reviews, game_scores
+# -----------------  Database functions -------------------
 
 
 def update_database(dataframe, date):
@@ -214,26 +262,10 @@ def update_database(dataframe, date):
     ]
     Game.objects.bulk_create(data_game)  # bulk create games
 
-    handle_many_to_many(dataframe)
+    handle_many_to_x(dataframe)
 
 
-def handle_many_to_many(dataframe):
-    for index, row in dataframe.iterrows():
-        # Access values of individual columns using column names
-        store_list_str = row['Store'].split(', ')
-        store_list_df = [Store.objects.get(name=store) for store in store_list_str]
-        group_name_df = row['Group']
-        group = WarezGroup.objects.get(name=group_name_df)
-        game_name_df = row['Game']
-        game = Game.objects.get(name=game_name_df)
-
-        game.available_on_stores.add(*store_list_df)  # add stores to game
-
-        for store in store_list_df:
-            store.games.add(game)  # add game to stores
-
-        group.games_cracked.add(game)  # add game to group
-
+# -----------------  HTML functions -------------------
 
 def create_html_table():
     """
