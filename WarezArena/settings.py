@@ -97,7 +97,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 CRONJOBS = [
-    ('* */1 * * *', 'django.core.management.call_command', ['update_data']),
+    ('0 * * * *', 'django.core.management.call_command', ['update_data']),
 ]
 
 # Internationalization
