@@ -112,7 +112,7 @@ def extract_table_from_thread():
 
     # Check if the thread has already been processed
     cursor = db.cursor()
-    query = "SELECT * FROM cracken_game WHERE crack_date = %s"
+    query = "SELECT * FROM cracken_game WHERE crack_date = %s LIMIT 1"
     cursor.execute(query, (date_object,))
     row = cursor.fetchone()
     if row and row[0] > 0:
