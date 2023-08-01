@@ -39,7 +39,7 @@ def create_validate_vars(dataframe):
     @return: a tuple containing the data to be added to the database
     @rtype: tuple
     """
-    
+
     store_names = dataframe['Store'].str.split(', ').explode().unique()
     store_links = dataframe['Store Link'].str.split(', ').explode().unique()
     group_names = dataframe['Group'].explode().unique()
@@ -60,6 +60,7 @@ def process_score_reviews_cols(dataframe):
     """
     Processes the Score (Reviews) column of the dataframe.
     In general, separates the scores and reviews into two lists.
+    Then, makes sure that the scores are in the correct format to be added to the database.
     @param dataframe: the dataframe containing the data to be added to the database
     @type dataframe: pandas.DataFrame
     @return: a tuple containing the scores and reviews
@@ -68,15 +69,15 @@ def process_score_reviews_cols(dataframe):
     game_scores_reviews = dataframe['Score (Reviews)'].explode()
     game_scores = [score.split('% ')[0] for score in game_scores_reviews]
     game_reviews = [review.split(' ')[1] for review in game_scores_reviews if len(review.split(' ')) > 1]
-    if len(game_scores) != len(game_reviews):
-        for i in range(len(game_scores)):
-            if game_scores[i] == '-':
-                game_scores[i] = '-1'
-                game_reviews.insert(i, '-1')
-            else:
-                game_reviews[i] = game_reviews[i][1:-1]
-                if game_reviews[i].find('k') != -1:
-                    game_reviews[i] = game_scores[i].replace('k', '000')
+    for i in range(len(game_scores)):
+        if game_scores[i] == '-':
+            game_scores[i] = '-1'
+            game_reviews.insert(i, '-1')  # replace '-' with -1
+        else:
+            game_reviews[i] = game_reviews[i][1:-1]  # remove parentheses
+            if game_reviews[i].find('k') != -1:
+                game_reviews[i] = game_scores[i].replace('k', '000')  # replace k with 000
+
     return game_reviews, game_scores
 
 
@@ -89,6 +90,7 @@ def handle_many_to_x(dataframe):
     @type dataframe: pandas.DataFrame
     """
     for index, row in dataframe.iterrows():
+
         # Access values of individual columns using column names
         store_list_str = row['Store'].split(', ')
         store_list_df = [Store.objects.get(name=store) for store in store_list_str]
@@ -187,8 +189,6 @@ def extract_table_from_thread():
     formatted_time = datetime.datetime.fromtimestamp(time_created).strftime('%Y-%m-%d')
     date_object = datetime.datetime.strptime(formatted_time, '%Y-%m-%d').date()
 
-    db = create_db_connection()
-
     # Check if the thread has already been processed
     if Game.objects.filter(crack_date=date_object).exists():
         return None, datetime.datetime.fromisocalendar(2001, 1, 1).strftime('%Y-%m-%d')
@@ -239,6 +239,7 @@ def update_database(dataframe, date):
         for row in range(len(store_names))
     ]
     Store.objects.bulk_create(data_store)  # bulk create stores
+    # or update them if they already exist
 
     data_group = [
         WarezGroup(
@@ -262,7 +263,7 @@ def update_database(dataframe, date):
     ]
     Game.objects.bulk_create(data_game)  # bulk create games
 
-    handle_many_to_x(dataframe)
+    handle_many_to_x(dataframe)  # handle many-to-many and many-to-one relationships
 
 
 # -----------------  HTML functions -------------------
