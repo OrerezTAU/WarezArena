@@ -6,3 +6,5 @@ mysqlclient==2.2.0
 mysql-connector-python==8.1.0
 django-filter~=23.2
 prettytable~=3.8.0
+django-crontab==0.7.1
+```

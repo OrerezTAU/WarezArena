@@ -41,9 +41,15 @@ to install all of the required libraries.
 ## Usage
 
 ```bash
-python3 manage.py runserver
+python3 manage.py crontab add # to add the cron job that updates the website
+python3 manage.py runserver # to run the server
 ```
 You will get a link to the address of the site. Default for localhost is [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
+
+If the cron job isn't working, you may need to allow cron full disk access.
+In macOS, go to System Preferences -> Security & Privacy -> Privacy -> Full Disk Access and add cron to the list.
+It should be located in /usr/sbin/cron. 
+
 
 ## License
 

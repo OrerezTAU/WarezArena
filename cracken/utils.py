@@ -111,12 +111,12 @@ def extract_table_from_thread():
     db = create_db_connection()
 
     # Check if the thread has already been processed
-    cursor = db.cursor()
-    query = "SELECT * FROM cracken_game WHERE crack_date = %s"
-    cursor.execute(query, (date_object,))
-    row = cursor.fetchone()
-    if row and row[0] > 0:
-        return None, datetime.datetime.fromisocalendar(2001, 1, 1).strftime('%Y-%m-%d')
+    # cursor = db.cursor()
+    # query = "SELECT * FROM cracken_game WHERE crack_date = %s"
+    # cursor.execute(query, (date_object,))
+    # row = cursor.fetchone()
+    # if row and row[0] > 0:
+    #     return None, datetime.datetime.fromisocalendar(2001, 1, 1).strftime('%Y-%m-%d')
 
     # Set pandas options to display columns properly
     pd.set_option('display.max_rows', 500)
@@ -148,7 +148,7 @@ def create_validate_vars(dataframe):
     game_names = dataframe['Game'].explode()
     game_links = dataframe['Game Link'].explode()
 
-    game_reviews, game_scores = proccess_sc_r_col(dataframe)
+    game_reviews, game_scores = process_score_reviews_cols(dataframe)
     curr_store_names = Store.objects.values_list('name', flat=True)
     curr_group_names = WarezGroup.objects.values_list('name', flat=True)
 
@@ -158,7 +158,7 @@ def create_validate_vars(dataframe):
     return game_links, game_names, group_names, store_links, store_names, game_scores, game_reviews
 
 
-def proccess_sc_r_col(dataframe):
+def process_score_reviews_cols(dataframe):
     game_scores_reviews = dataframe['Score (Reviews)'].explode()
     game_scores = [score.split('% ')[0] for score in game_scores_reviews]
     game_reviews = [review.split(' ')[1] for review in game_scores_reviews if len(review.split(' ')) > 1]
@@ -229,12 +229,13 @@ def create_html_table():
     # Initiate cursor
     cursor = db.cursor()
     # Execute SQL query
-    cursor.execute("SELECT name,cracking_group_id,score,num_reviews,crack_date,nfo_link FROM cracken_game")
+    cursor.execute("SELECT name,cracking_group_id,score,num_reviews,nfo_link,crack_date FROM cracken_game")
     # Convert "gameRecords" table to a prettyTable
     my_table = from_db_cursor(cursor)
-    my_table.field_names = ["Game Name", "Cracking Group", "Score(%)", "Reviews", "Date Cracked", "NFO Link"]
+    my_table.field_names = ["Game Name", "Cracking Group", "Score(%)", "Reviews", "NFO Link", "Date Cracked"]
     # Generate the HTML code of the prettyTable using "get_html_string"
-    html_code = my_table.get_html_string(attributes={"class": "table"}, format=True)
+    html_code = my_table.get_html_string(attributes={"class": "table"},
+                                         format=True, sortby="Date Cracked", reversesort=True)
     # Open prettyTable.html file
     fo = open("cracken/templates/index.html", "w")
     # Write "htmlCode" to index.html
