@@ -1,0 +1,23 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+  <h1>Name: {{store.name}}</h1>
+    <h2>URL: {{store.url}}</h2>
+  {% if store.description %}
+          <p>{{store.description}}</p>
+  {% endif %}
+<h2>Games:</h2>
+    {% if store.games.all %}
+  <ul>
+    {% for game in store.games.all %}
+      <li>
+        <a href="{{ game.get_absolute_url }}">{{ game.name }}</a>
+      </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+    <p>There are no games cracked in this store at the moment.</p>
+  {% endif %}
+
+
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+  <h1>{{warezgroup.name}}</h1>
+    {% if warezgroup.year_founded %}
+         <h2>Founding Date: {{warezgroup.year_founded}}</h2>
+  {% endif %}
+  {% if warezgroup.description %}
+          <p>{{warezgroup.description}}</p>
+  {% endif %}
+<h2>Games:</h2>
+    {% if warezgroup.games_cracked.all %}
+  <ul>
+    {% for game in warezgroup.games_cracked.all %}
+      <li>
+        <a href="{{ game.get_absolute_url }}">{{ game.name }}</a>
+      </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+    <p>There are no games cracked by this group at the moment.</p>
+  {% endif %}
+
+
+{% endblock %}

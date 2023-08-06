@@ -1,0 +1,16 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+  <h1>Store List</h1>
+  {% if store_list %}
+  <ul>
+    {% for store in store_list %}
+      <li>
+        <a href="{{ store.get_absolute_url }}">{{ store.name }}</a>
+      </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+    <p>There are currently no stores in the database.</p>
+  {% endif %}
+{% endblock %}
