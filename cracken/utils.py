@@ -7,6 +7,7 @@ from cracken.models import Game, Store, WarezGroup
 from prettytable import from_db_cursor
 import mysql.connector
 from mysql.connector import Error
+import redditcleaner
 
 
 # -----------------  Auxiliary functions -------------------
@@ -76,7 +77,8 @@ def process_score_reviews_cols(dataframe):
         else:
             game_reviews[i] = game_reviews[i][1:-1]  # remove parentheses
             if game_reviews[i].find('k') != -1:
-                game_reviews[i] = game_scores[i].replace('k', '000')  # replace k with 000
+
+                game_reviews[i] = str(int(float(game_reviews[i][:-1]) * 1000))  # convert k to 1000
 
     return game_reviews, game_scores
 
@@ -166,8 +168,10 @@ def extract_table_contents(table_text):
             store_names_tuple = re.findall(pattern_name, cells[2])  # find all the stores in the cell
             store_links_tuple = re.findall(pattern_link, cells[2])  # find all the store links in the cell
             # TODO - find a scalable way to access the store and game columns (not hardcoded)
-            cells[0] = game_name_str
+            cells[0] = redditcleaner.clean(game_name_str)
+            cells[1] = redditcleaner.clean(cells[1])  # make sure to clean the text before adding it to the database
             cells[2] = ', '.join(store_names_tuple)
+            cells[3] = redditcleaner.clean(cells[3])  # make sure to clean the text before adding it to the database
             cells.append(game_link_str)
             store_links_tuple = [urlparse(link).netloc for link in store_links_tuple]
             cells.append(', '.join(store_links_tuple))
