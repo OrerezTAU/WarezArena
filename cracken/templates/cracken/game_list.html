@@ -1,16 +1,18 @@
-{% extends "base_generic.html" %}
-
-{% block content %}
-  <h1>Game List</h1>
-  {% if game_list %}
-  <ul>
-    {% for game in game_list %}
-      <li>
-        <a href="{{ game.get_absolute_url }}">{{ game.name }}</a>
-      </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-    <p>There are currently no games in the database.</p>
-  {% endif %}
-{% endblock %}
+{% load render_table from django_tables2 %}
+{% load django_bootstrap5 %}
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>List of stores</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+        {% if filter %}
+    <form action="" method="get" class="form form-inline">
+        {% bootstrap_form filter.form layout='horizontal' %}
+        {% bootstrap_button 'filter' %}
+    </form>
+{% endif %}
+    </head>
+    <body>
+        {% render_table table %}
+    </body>
+</html>

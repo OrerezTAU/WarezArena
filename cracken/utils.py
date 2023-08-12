@@ -4,7 +4,6 @@ import praw
 import pandas as pd
 import re
 from cracken.models import Game, Store, WarezGroup
-from prettytable import from_db_cursor
 import mysql.connector
 from mysql.connector import Error
 import redditcleaner
@@ -338,30 +337,6 @@ def update_database(dataframe, date):
     handle_many_to_x(dataframe)  # handle many-to-many and many-to-one relationships
 
 
-# -----------------  HTML functions -------------------
 
-def create_html_table():
-    """
-    Creates a prettyTable from the database and writes it to a file.
-    """
-    # Create a connection to the database
-    db = create_db_connection()
-    if db is None:
-        return
-    # Initiate cursor
-    cursor = db.cursor()
-    # Execute SQL query
-    cursor.execute("SELECT name,cracking_group_id,score,num_reviews,nfo_link,crack_date FROM cracken_game")
-    # Convert "gameRecords" table to a prettyTable
-    my_table = from_db_cursor(cursor)
-    my_table.field_names = ["Game Name", "Cracking Group", "Score(%)", "Reviews", "NFO Link", "Date Cracked"]
-    # Generate the HTML code of the prettyTable using "get_html_string"
-    html_code = my_table.get_html_string(attributes={"class": "table"},
-                                         format=True, sortby="Date Cracked", reversesort=True)
-    # Open prettyTable.html file
-    fo = open("cracken/templates/index.html", "w")
-    # Write "htmlCode" to index.html
-    fo.write(html_code)
-    # Close prettyTable.html
-    fo.close()
-    return
+
+

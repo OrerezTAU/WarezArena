@@ -1,16 +1,11 @@
-{% extends "base_generic.html" %}
-
-{% block content %}
-  <h1>Warez Group List</h1>
-  {% if warezGroup_list %}
-  <ul>
-    {% for group in warezGroup_list_list %}
-      <li>
-        <a href="{{ warezGroup_list.get_absolute_url }}">{{ warezGroup_list.name }}</a>
-      </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-    <p>There are currently no Warez groups in the database.</p>
-  {% endif %}
-{% endblock %}
+{% load render_table from django_tables2 %}
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>List of Warez Groups</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+    </head>
+    <body>
+        {% render_table table %}
+    </body>
+</html>

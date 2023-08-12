@@ -1,16 +1,11 @@
-{% extends "base_generic.html" %}
-
-{% block content %}
-  <h1>Store List</h1>
-  {% if store_list %}
-  <ul>
-    {% for store in store_list %}
-      <li>
-        <a href="{{ store.get_absolute_url }}">{{ store.name }}</a>
-      </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-    <p>There are currently no stores in the database.</p>
-  {% endif %}
-{% endblock %}
+{% load render_table from django_tables2 %}
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>List of stores</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+    </head>
+    <body>
+        {% render_table table %}
+    </body>
+</html>

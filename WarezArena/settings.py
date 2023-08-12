@@ -38,7 +38,10 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "cracken.apps.CrackenConfig",
-    "django_crontab"
+    "django_crontab",
+    "django_tables2",
+    "django_filters",
+    "django_bootstrap5"
 ]
 
 MIDDLEWARE = [
