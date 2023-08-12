@@ -14,7 +14,9 @@ class GameTable(tables.Table):
         model = Game
         template_name = "django_tables2/bootstrap.html"
         linkify = ("cracking_group",)
-        fields = ("name", "cracking_group", "crack_date", "score", "num_reviews", "nfo_link")
+        fields = ("name", "cracking_group", "crack_date", "available_on_stores", "score", "num_reviews", "nfo_link")
+
+    available_on_stores = tables.ManyToManyColumn(linkify_item=True)
 
 
 class WarezGroupTable(tables.Table):
@@ -22,4 +24,3 @@ class WarezGroupTable(tables.Table):
         model = WarezGroup
         template_name = "django_tables2/bootstrap.html"
         fields = ("name", "year_founded", "description")
-
