@@ -76,7 +76,6 @@ def process_score_reviews_cols(dataframe):
         else:
             game_reviews[i] = game_reviews[i][1:-1]  # remove parentheses
             if game_reviews[i].find('k') != -1:
-
                 game_reviews[i] = str(int(float(game_reviews[i][:-1]) * 1000))  # convert k to 1000
 
     return game_reviews, game_scores
@@ -98,7 +97,7 @@ def handle_many_to_x(dataframe):
         group_name_df = row['Group']
         group = WarezGroup.objects.get(name=group_name_df)
         game_name_df = row['Game']
-        game = Game.objects.get(name=game_name_df)
+        game = Game.objects.get(name=game_name_df, cracking_group=group, nfo_link=row['Game Link'])
 
         game.available_on_stores.add(*store_list_df)  # add stores to game
 
@@ -172,7 +171,7 @@ def extract_table_contents(table_text):
             cells[2] = ', '.join(store_names_tuple)
             cells[3] = redditcleaner.clean(cells[3])  # make sure to clean the text before adding it to the database
             cells.append(game_link_str)
-            store_links_tuple = [urlparse(link).netloc for link in store_links_tuple]
+            store_links_tuple = [link.split(".com")[0] + ".com" for link in store_links_tuple]
             cells.append(', '.join(store_links_tuple))
             data_rows.append(cells)
 
@@ -335,8 +334,3 @@ def update_database(dataframe, date):
     Game.objects.bulk_create(data_game)  # bulk create games
 
     handle_many_to_x(dataframe)  # handle many-to-many and many-to-one relationships
-
-
-
-
-

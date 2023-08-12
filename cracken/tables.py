@@ -7,6 +7,7 @@ class StoreTable(tables.Table):
         model = Store
         template_name = "django_tables2/bootstrap.html"
         fields = ("name", "url", "description")
+    name = tables.LinkColumn("store-detail", args=[tables.A("pk")])
 
 
 class GameTable(tables.Table):
@@ -17,6 +18,7 @@ class GameTable(tables.Table):
         fields = ("name", "cracking_group", "crack_date", "available_on_stores", "score", "num_reviews", "nfo_link")
 
     available_on_stores = tables.ManyToManyColumn(linkify_item=True)
+    name = tables.LinkColumn("game-detail", args=[tables.A("pk")])
 
 
 class WarezGroupTable(tables.Table):

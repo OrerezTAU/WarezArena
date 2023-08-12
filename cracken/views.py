@@ -19,11 +19,6 @@ class StoreDetailView(generic.DetailView):
     model = Store
 
 
-class StoreListView(SingleTableView):
-    model = Store
-    table_class = StoreTable
-
-
 class GameDetailView(generic.DetailView):
     model = Game
 
@@ -37,6 +32,22 @@ class GameFilter(FilterSet):
             'score': ['gt'],
             'num_reviews': ['gt'],
         }
+
+
+class StoreFilter(FilterSet):
+    class Meta:
+        model = Store
+        fields = {
+            'name': ['icontains'],
+            'description': ['icontains'],
+        }
+
+
+class FilteredStoreListView(SingleTableMixin, FilterView):
+    model = Store
+    table_class = StoreTable
+    filterset_class = StoreFilter
+    template_name = "cracken/store_list.html"
 
 
 class FilteredGameListView(SingleTableMixin, FilterView):
@@ -53,5 +64,3 @@ class WarezGroupDetailView(generic.DetailView):
 class WarezGroupListView(SingleTableView):
     model = WarezGroup
     table_class = WarezGroupTable
-
-

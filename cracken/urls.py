@@ -8,7 +8,7 @@ urlpatterns = [
     path('game/<int:pk>', views.GameDetailView.as_view(), name='game-detail'),
     path('warezgroups/', views.WarezGroupListView.as_view(),name="warez-groups"),
     path('warezgroup/<int:pk>', views.WarezGroupDetailView.as_view(), name='warez-group-detail'),
-    path('stores/', views.StoreListView.as_view(),name="stores"),
+    path('stores/', views.FilteredStoreListView.as_view(),name="stores"),
     path('store/<int:pk>', views.StoreDetailView.as_view(), name='store-detail'),
 ]
 
