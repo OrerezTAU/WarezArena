@@ -1,0 +1,25 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+  <h1>Name: {{game.name}}</h1>
+    <h2>Crack Date: {{game.crack_date}}</h2>
+    <h2 href="{{game.nfo_link}}">NFO Link: {{game.nfo_link}}</h2>
+    <h2>Score(Reviews): {{ game.score }} ({{ game.num_reviews }})</h2>
+  {% if game.cracking_group %}
+          <a href="{{ game.cracking_group.get_absolute_url }}">Cracking Group: {{game.cracking_group.name}}</a>
+  {% endif %}
+<h2>Stores:</h2>
+    {% if game.available_on_stores.all %}
+  <ul>
+    {% for store in game.available_on_stores.all %}
+      <li>
+        <a href="{{ store.get_absolute_url }}">{{ store.name }}</a>
+      </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+    <p>The game is not yet available on any known store.</p>
+  {% endif %}
+
+
+{% endblock %}
